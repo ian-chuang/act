@@ -12,6 +12,8 @@ from constants import MASTER_GRIPPER_POSITION_NORMALIZE_FN
 from constants import PUPPET_GRIPPER_POSITION_NORMALIZE_FN
 from constants import PUPPET_GRIPPER_VELOCITY_NORMALIZE_FN
 
+from utils import sample_slot_insertion_pose
+
 import IPython
 e = IPython.embed
 
@@ -45,6 +47,12 @@ def make_sim_env(task_name):
         xml_path = os.path.join(XML_DIR, f'bimanual_viperx_insertion.xml')
         physics = mujoco.Physics.from_xml_path(xml_path)
         task = InsertionTask(random=False)
+        env = control.Environment(physics, task, time_limit=20, control_timestep=DT,
+                                  n_sub_steps=None, flat_observation=False)
+    elif 'sim_marble_game' in task_name:
+        xml_path = os.path.join(XML_DIR, f'bimanual_viperx_marble_game.xml')
+        physics = mujoco.Physics.from_xml_path(xml_path)
+        task = MarbleGameTask(random=False)
         env = control.Environment(physics, task, time_limit=20, control_timestep=DT,
                                   n_sub_steps=None, flat_observation=False)
     else:
@@ -109,7 +117,8 @@ class BimanualViperXTask(base.Task):
         obs['images'] = dict()
         obs['images']['top'] = physics.render(height=480, width=640, camera_id='top')
         obs['images']['angle'] = physics.render(height=480, width=640, camera_id='angle')
-        obs['images']['vis'] = physics.render(height=480, width=640, camera_id='front_close')
+        obs['images']['left_eye'] = physics.render(height=1280, width=1280, camera_id='left_eye')
+        obs['images']['right_eye'] = physics.render(height=1280, width=1280, camera_id='right_eye')
 
         return obs
 
@@ -227,6 +236,71 @@ class InsertionTask(BimanualViperXTask):
         if pin_touched: # successful insertion
             reward = 4
         return reward
+    
+
+class MarbleGameTask(BimanualViperXTask):
+    def __init__(self, random=None):
+        super().__init__(random=random)
+        self.max_reward = 4
+
+    def initialize_episode(self, physics):
+        """Sets the state of the environment at the start of each episode."""
+        # TODO Notice: this function does not randomize the env configuration. Instead, set BOX_POSE from outside
+        # reset qpos, control and box position
+        with physics.reset_context():
+            physics.named.data.qpos[:16] = START_ARM_POSE
+            np.copyto(physics.data.ctrl, START_ARM_POSE)
+            
+            pose = sample_slot_insertion_pose()
+            id2index = lambda j_id: 16 + (j_id - 16) * 7 # first 16 is robot qpos, 7 is pose dim # hacky
+
+            board_start_id = physics.model.name2id('board_joint', 'joint')
+            board_start_idx = id2index(board_start_id)
+            np.copyto(physics.data.qpos[board_start_idx : board_start_idx + 7], pose)
+
+            marble_start_id = physics.model.name2id('marble_joint', 'joint')
+            marble_start_idx = id2index(marble_start_id)
+            np.copyto(physics.data.qpos[marble_start_idx : marble_start_idx + 7], pose)
+            
+        super().initialize_episode(physics)
+
+    @staticmethod
+    def get_env_state(physics):
+        env_state = physics.data.qpos.copy()[16:]
+        return env_state
+
+    def get_reward(self, physics):
+        return 0
+    
+class SlotInsertionTask(BimanualViperXTask):
+    def __init__(self, random=None):
+        super().__init__(random=random)
+        self.max_reward = 4
+
+    def initialize_episode(self, physics):
+        """Sets the state of the environment at the start of each episode."""
+        # TODO Notice: this function does not randomize the env configuration. Instead, set BOX_POSE from outside
+        # reset qpos, control and box position
+        with physics.reset_context():
+            physics.named.data.qpos[:16] = START_ARM_POSE
+            np.copyto(physics.data.ctrl, START_ARM_POSE)
+            
+            stick_pose = sample_slot_insertion_pose()
+            id2index = lambda j_id: 16 + (j_id - 16) * 7 # first 16 is robot qpos, 7 is pose dim # hacky
+
+            stick_start_id = physics.model.name2id('stick_joint', 'joint')
+            stick_start_idx = id2index(stick_start_id)
+            np.copyto(physics.data.qpos[stick_start_idx : stick_start_idx + 7], stick_pose)
+            
+        super().initialize_episode(physics)
+
+    @staticmethod
+    def get_env_state(physics):
+        env_state = physics.data.qpos.copy()[16:]
+        return env_state
+
+    def get_reward(self, physics):
+        return 0
 
 
 def get_action(master_bot_left, master_bot_right):

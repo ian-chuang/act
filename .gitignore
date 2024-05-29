@@ -1,3 +1,6 @@
+signalingSettings.json
+serviceAccountKey.json
+
 bin
 logs
 wandb

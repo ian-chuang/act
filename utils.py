@@ -141,6 +141,28 @@ def sample_box_pose():
     cube_quat = np.array([1, 0, 0, 0])
     return np.concatenate([cube_position, cube_quat])
 
+def sample_slot_insertion_pose():
+    x_range = [-0.0, -0.1]
+    y_range = [0.35, 0.55]
+    z_range = [0, 0]
+
+    ranges = np.vstack([x_range, y_range, z_range])
+    position = np.random.uniform(ranges[:, 0], ranges[:, 1])
+
+    quat = np.array([1, 0, 0, 0])
+    return np.concatenate([position, quat])
+
+def sample_marble_game_pose():
+    x_range = [-0.05, 0.05]
+    y_range = [0.45, 0.55]
+    z_range = [0, 0]
+
+    ranges = np.vstack([x_range, y_range, z_range])
+    position = np.random.uniform(ranges[:, 0], ranges[:, 1])
+
+    quat = np.array([1, 0, 0, 0])
+    return np.concatenate([position, quat])
+
 def sample_insertion_pose():
     # Peg
     x_range = [0.1, 0.2]
