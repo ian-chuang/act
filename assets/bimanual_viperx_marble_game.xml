@@ -1,56 +1,81 @@
 <mujoco>
     <include file="scene.xml"/>
     <include file="vx300s_dependencies.xml"/>
+    <extension>
+        <plugin plugin="mujoco.elasticity.cable"/>
+    </extension>
+
     <worldbody>
         <include file="vx300s_left.xml" />
-        <include file="vx300s_right.xml" />
+        <include file="vx300s_right.xml" />  
 
         <body name="board" pos="0 0.7 0.0" >
-            <inertial pos="0 0 0" mass="0.1" diaginertia="0.002 0.002 0.001" />
-            <joint name="board_joint" type="free" frictionloss="0.01" />
-            <geom  pos="0 0 0.02" euler="0 0 0" size="0.12 0.12 0.015" type="box" rgba="0.48 0.30 0.18 1" friction="0.1"/>
-            <geom  pos="0 0.125 0.03" euler="0 0 0" size="0.12 0.005 0.03" type="box" rgba=".27 .12 0 1"  friction="0.1"/>
-            <geom  pos="0.125 0 0.03" euler="0 0 1.57" size="0.13 0.005 0.03" type="box" rgba=".27 .12 0 1" friction="0.1"/>
-            <geom  pos="-0.125 0.0 0.03" euler="0 0 1.57" size="0.13 0.005 0.03" type="box" rgba=".27 .12 0 1" friction="0.1"/>
-            <geom  pos="0 -0.125 0.03" euler="0 0 0" size="0.12 0.005 0.03" type="box" rgba=".27 .12 0 1" friction="0.1"/>
-            <geom  pos="-0.03 0.05 0.03" euler="0 0 0" size="0.09 0.005 0.03" type="box" rgba=".27 .12 0 1" friction="0.1"/>
-            <geom  pos="0.03 -0.05 0.03" euler="0 0 0" size="0.09 0.005 0.03" type="box" rgba=".27 .12 0 1" friction="0.1"/>
+            <joint name="board_joint" type="free" />
+            <geom  pos="0 0 0.01" euler="0 0 0" size="0.12 0.12 0.01" type="box" rgba="0.48 0.30 0.18 1" />
+            <geom  pos="0 0.125 0.03" euler="0 0 0" size="0.12 0.005 0.03" type="box" rgba=".27 .12 0 1"  />
+            <geom  pos="0.125 0 0.03" euler="0 0 1.57" size="0.13 0.005 0.03" type="box" rgba=".27 .12 0 1" />
+            <geom  pos="-0.125 0.0 0.03" euler="0 0 1.57" size="0.13 0.005 0.03" type="box" rgba=".27 .12 0 1" />
+            <geom  pos="0 -0.125 0.03" euler="0 0 0" size="0.12 0.005 0.03" type="box" rgba=".27 .12 0 1" />
+            <geom  pos="-0.03 0.05 0.03" euler="0 0 0" size="0.09 0.005 0.03" type="box" rgba=".27 .12 0 1" />
+            <geom  pos="0.03 -0.05 0.03" euler="0 0 0" size="0.09 0.005 0.03" type="box" rgba=".27 .12 0 1" />
 
-            <geom  pos="-0.175 0 0.045" size="0.05 0.015 0.015" type="box" rgba=".27 .12 0 1" friction="1"/>
-            <geom  pos="0.175 0 0.045" size="0.05 0.015 0.015" type="box" rgba=".27 .12 0 1" friction="1"/>
+
+            <body pos="-0.135 0 0.04" euler="0 0 3.14">
+                <composite prefix="handle_1" type="cable" curve="s 0 0" count="6 1 1"
+                                size="0.1 0.02 0.02 " initial="none">
+                    <plugin plugin="mujoco.elasticity.cable">
+                        <config key="twist" value="5e8"/>
+                        <config key="bend" value="15e5"/>
+                        <config key="vmax" value="0"/>
+                    </plugin>
+                    <joint kind="main" damping="0.15" armature="0.01"/>
+                    <geom type="capsule" size="0.02" rgba=".27 .12 0 1"/>
+                </composite>    
+            </body>
+
+            <body pos="0.135 0 0.04" euler="0 0 0">
+                <composite prefix="handle_2" type="cable" curve="s 0 0" count="6 1 1"
+                                size="0.1 0.02 0.02 " initial="none">
+                    <plugin plugin="mujoco.elasticity.cable">
+                        <config key="twist" value="5e8"/>
+                        <config key="bend" value="15e5"/>
+                        <config key="vmax" value="0"/>
+                    </plugin>
+                    <joint kind="main" damping="0.15" armature="0.01"/>
+                    <geom type="capsule" size="0.02" rgba=".27 .12 0 1"/>
+                </composite>    
+            </body>
+
+            
         </body>
-        <body name="marble" pos="0 0.7 0" >
-            <inertial pos="0 0 0" mass="0.05" diaginertia="0.002 0.002 0.002" />
+        <body name="marble" pos="0 0.7 0.3" >
             <joint name="marble_joint" type="free"  />
-            <geom  pos="0 0 0.3" size="0.02" type="sphere" rgba=".7 .5 .5 1" friction="0.01"/>
+            <geom  pos="0 0 0" size="0.02" type="sphere" rgba=".7 .5 .5 1" />
         </body>
 
     </worldbody>
 
     <actuator>
-        <position ctrllimited="true" ctrlrange="-3.14158 3.14158" joint="vx300s_left/waist" kp="400"  user="1" forcelimited="true" forcerange="-150 150"/>
-        <position ctrllimited="true" ctrlrange="-1.85005 1.25664" joint="vx300s_left/shoulder" kp="800"  user="1" forcelimited="true" forcerange="-300 300"/>
-        <position ctrllimited="true" ctrlrange="-1.76278 1.6057" joint="vx300s_left/elbow" kp="400"  user="1" forcelimited="true" forcerange="-100 100"/>
+        <position ctrllimited="true" ctrlrange="-3.14158 3.14158" joint="vx300s_left/waist" kp="800"  user="1" forcelimited="true" forcerange="-150 150"/>
+        <position ctrllimited="true" ctrlrange="-1.85005 1.25664" joint="vx300s_left/shoulder" kp="1600"  user="1" forcelimited="true" forcerange="-300 300"/>
+        <position ctrllimited="true" ctrlrange="-1.76278 1.6057" joint="vx300s_left/elbow" kp="800"  user="1" forcelimited="true" forcerange="-100 100"/>
         <position ctrllimited="true" ctrlrange="-3.14158 3.14158" joint="vx300s_left/forearm_roll" kp="10"  user="1" forcelimited="true" forcerange="-100 100"/>
         <position ctrllimited="true" ctrlrange="-1.8675 2.23402" joint="vx300s_left/wrist_angle" kp="50"  user="1"/>
         <position ctrllimited="true" ctrlrange="-3.14158 3.14158" joint="vx300s_left/wrist_rotate" kp="20"  user="1"/>
         <position ctrllimited="true" ctrlrange="0.021 0.057" joint="vx300s_left/left_finger" kp="2000" kv="40"  user="1"/>
-        <position ctrllimited="true" ctrlrange="-0.057 -0.021" joint="vx300s_left/right_finger" kp="2000" kv="40"   user="1"/>
+        <position ctrllimited="true" ctrlrange="-0.057 -0.021" joint="vx300s_left/right_finger" kp="2000" kv="40"  user="1"/>
 
-        <position ctrllimited="true" ctrlrange="-3.14158 3.14158" joint="vx300s_right/waist" kp="400"  user="1" forcelimited="true" forcerange="-150 150"/>
-        <position ctrllimited="true" ctrlrange="-1.85005 1.25664" joint="vx300s_right/shoulder" kp="800"  user="1" forcelimited="true" forcerange="-300 300"/>
-        <position ctrllimited="true" ctrlrange="-1.76278 1.6057" joint="vx300s_right/elbow" kp="400"  user="1" forcelimited="true" forcerange="-100 100"/>
+        <position ctrllimited="true" ctrlrange="-3.14158 3.14158" joint="vx300s_right/waist" kp="800"  user="1" forcelimited="true" forcerange="-150 150"/>
+        <position ctrllimited="true" ctrlrange="-1.85005 1.25664" joint="vx300s_right/shoulder" kp="1600"  user="1" forcelimited="true" forcerange="-300 300"/>
+        <position ctrllimited="true" ctrlrange="-1.76278 1.6057" joint="vx300s_right/elbow" kp="800"  user="1" forcelimited="true" forcerange="-100 100"/>
         <position ctrllimited="true" ctrlrange="-3.14158 3.14158" joint="vx300s_right/forearm_roll" kp="10"  user="1" forcelimited="true" forcerange="-100 100"/>
         <position ctrllimited="true" ctrlrange="-1.8675 2.23402" joint="vx300s_right/wrist_angle" kp="50"  user="1"/>
         <position ctrllimited="true" ctrlrange="-3.14158 3.14158" joint="vx300s_right/wrist_rotate" kp="20"  user="1"/>
-        <position ctrllimited="true" ctrlrange="0.021 0.057" joint="vx300s_right/left_finger" kp="2000" kv="40"   user="1"/>
-        <position ctrllimited="true" ctrlrange="-0.057 -0.021" joint="vx300s_right/right_finger" kp="2000" kv="40"   user="1"/>
+        <position ctrllimited="true" ctrlrange="0.021 0.057" joint="vx300s_right/left_finger" kp="2000" kv="40"  user="1"/>
+        <position ctrllimited="true" ctrlrange="-0.057 -0.021" joint="vx300s_right/right_finger" kp="2000" kv="40"  user="1"/>
 
     </actuator>
 
-    <!-- <keyframe>
-        <key qpos="0 -0.96 1.16 0 -0.3 0 0.024 -0.024  0 -0.96 1.16 0 -0.3 0 0.024 -0.024  0.2 0.5 0.05 1 0 0 0"/>
-    </keyframe> -->
 
 
 </mujoco>
