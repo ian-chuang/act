@@ -311,6 +311,18 @@ class SlotInsertionTask(BimanualViperXTask):
         return env_state
 
     def get_reward(self, physics):
+
+        pos = np.array(physics.named.data.qpos['stick_joint'][:3])
+
+        range = np.array([
+            [-0.08, 0.53, 0.014],
+            [0.08, 0.47, 0.016],
+        ])
+
+        # check within range
+        if np.all(pos > range[0]) and np.all(pos < range[1]):
+            return 1
+
         return 0
 
 
