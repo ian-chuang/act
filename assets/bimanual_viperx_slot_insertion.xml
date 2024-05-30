@@ -5,15 +5,15 @@
         <include file="vx300s_left.xml" />
         <include file="vx300s_right.xml" />
 
-        <body name="slot" pos="0 0.7 0">
+        <body name="slot" pos="0 0.5 0">
             <geom  pos="0 0.032 0.015" size="0.1 0.015 0.015" type="box" rgba=".7 .5 .5 1"/>
             <geom  pos="0 -0.032 0.015" size="0.1 0.015 0.015" type="box" rgba=".7 .5 .5 1"/>
         </body>
 
-        <body name="stick" pos="0 0 0" euler="0 0 0">
+        <body name="stick" pos="0 0.3 0" euler="0 0 0">
             <inertial pos="0 0 0" mass="0.05" diaginertia="0.002 0.002 0.002" />
             <joint name="stick_joint" type="free" frictionloss="0.01" />
-            <geom  pos="0 0 0.015" size="0.15 0.015 0.015" type="box" rgba=".7 .5 .5 1"/>
+            <geom  pos="0 0 0.015" size="0.16 0.013 0.015" type="box" rgba=".5 .7 .5 1"/>
         </body>
 
     </worldbody>

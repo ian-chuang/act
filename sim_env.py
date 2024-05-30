@@ -12,8 +12,6 @@ from constants import MASTER_GRIPPER_POSITION_NORMALIZE_FN
 from constants import PUPPET_GRIPPER_POSITION_NORMALIZE_FN
 from constants import PUPPET_GRIPPER_VELOCITY_NORMALIZE_FN
 
-from utils import sample_slot_insertion_pose
-
 import IPython
 e = IPython.embed
 
@@ -53,7 +51,13 @@ def make_sim_env(task_name):
         xml_path = os.path.join(XML_DIR, f'bimanual_viperx_marble_game.xml')
         physics = mujoco.Physics.from_xml_path(xml_path)
         task = MarbleGameTask(random=False)
-        env = control.Environment(physics, task, time_limit=20, control_timestep=DT,
+        env = control.Environment(physics, task, time_limit=1000, control_timestep=DT,
+                                  n_sub_steps=None, flat_observation=False)
+    elif 'sim_slot_insertion' in task_name:
+        xml_path = os.path.join(XML_DIR, f'bimanual_viperx_slot_insertion.xml')
+        physics = mujoco.Physics.from_xml_path(xml_path)
+        task = SlotInsertionTask(random=False)
+        env = control.Environment(physics, task, time_limit=1000, control_timestep=DT,
                                   n_sub_steps=None, flat_observation=False)
     else:
         raise NotImplementedError
@@ -251,16 +255,18 @@ class MarbleGameTask(BimanualViperXTask):
             physics.named.data.qpos[:16] = START_ARM_POSE
             np.copyto(physics.data.ctrl, START_ARM_POSE)
             
-            pose = sample_slot_insertion_pose()
-            id2index = lambda j_id: 16 + (j_id - 16) * 7 # first 16 is robot qpos, 7 is pose dim # hacky
+            x_range = [-0.05, 0.05]
+            y_range = [0.45, 0.55]
+            z_range = [0, 0]
 
-            board_start_id = physics.model.name2id('board_joint', 'joint')
-            board_start_idx = id2index(board_start_id)
-            np.copyto(physics.data.qpos[board_start_idx : board_start_idx + 7], pose)
+            ranges = np.vstack([x_range, y_range, z_range])
+            position = np.random.uniform(ranges[:, 0], ranges[:, 1])
 
-            marble_start_id = physics.model.name2id('marble_joint', 'joint')
-            marble_start_idx = id2index(marble_start_id)
-            np.copyto(physics.data.qpos[marble_start_idx : marble_start_idx + 7], pose)
+            quat = np.array([1, 0, 0, 0])
+            pose = np.concatenate([position, quat])
+
+            np.copyto(physics.named.data.qpos['board_joint'], pose)
+            np.copyto(physics.named.data.qpos['marble_joint'], pose)
             
         super().initialize_episode(physics)
 
@@ -285,12 +291,17 @@ class SlotInsertionTask(BimanualViperXTask):
             physics.named.data.qpos[:16] = START_ARM_POSE
             np.copyto(physics.data.ctrl, START_ARM_POSE)
             
-            stick_pose = sample_slot_insertion_pose()
-            id2index = lambda j_id: 16 + (j_id - 16) * 7 # first 16 is robot qpos, 7 is pose dim # hacky
+            x_range = [-0.05, 0.05]
+            y_range = [0.3, 0.4]
+            z_range = [0, 0]
 
-            stick_start_id = physics.model.name2id('stick_joint', 'joint')
-            stick_start_idx = id2index(stick_start_id)
-            np.copyto(physics.data.qpos[stick_start_idx : stick_start_idx + 7], stick_pose)
+            ranges = np.vstack([x_range, y_range, z_range])
+            position = np.random.uniform(ranges[:, 0], ranges[:, 1])
+
+            quat = np.array([1, 0, 0, 0])
+            pose = np.concatenate([position, quat])
+        
+            np.copyto(physics.named.data.qpos['stick_joint'], pose)
             
         super().initialize_episode(physics)
 
