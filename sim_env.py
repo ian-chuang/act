@@ -286,7 +286,7 @@ class MarbleGameTask(BimanualViperXTask):
 class SlotInsertionTask(BimanualViperXTask):
     def __init__(self, random=None):
         super().__init__(random=random)
-        self.max_reward = 4
+        self.max_reward = 1
 
     def initialize_episode(self, physics):
         """Sets the state of the environment at the start of each episode."""
@@ -322,15 +322,14 @@ class SlotInsertionTask(BimanualViperXTask):
 
         pos = np.array(physics.named.data.qpos['stick_joint'][:3])
 
-        range = np.array([
-            [-0.08, 0.53, 0.014],
-            [0.08, 0.47, 0.016],
-        ])
+        xyz_low = np.array([-0.08, 0.49, -0.01])
+        xyz_high = np.array([0.08, 0.51, 0.015])
 
-        # check within range
-        if np.all(pos > range[0]) and np.all(pos < range[1]):
+        print(f"pos > xyz_low: {np.all(pos > xyz_low)}, pos < xyz_high: {np.all(pos < xyz_high)}, pos: {pos}")
+
+        if np.all(pos > xyz_low) and np.all(pos < xyz_high):
             return 1
-
+        
         return 0
 
 
