@@ -1,4 +1,5 @@
 <mujocoinclude>
+    <compiler angle="radian"/>
     <asset>
         <mesh name="vx300s_1_base" file="vx300s_1_base.stl" scale="0.001 0.001 0.001" />
         <mesh name="vx300s_2_shoulder" file="vx300s_2_shoulder.stl" scale="0.001 0.001 0.001" />

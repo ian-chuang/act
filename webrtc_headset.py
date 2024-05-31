@@ -14,23 +14,54 @@ import numpy as np
 from aiortc.rtcrtpsender import RTCRtpSender
 import time
 
+class HeadsetData:
+    h_pos = np.zeros(3)
+    h_quat = np.zeros(4)
+    l_pos = np.zeros(3)
+    l_quat = np.zeros(4)
+    l_thumbstick_x = 0
+    l_thumbstick_y = 0
+    l_index_trigger = 0
+    l_hand_trigger = 0
+    l_button_one = False
+    l_button_two = False
+    l_button_thumbstick = False
+    r_pos = np.zeros(3)
+    r_quat = np.zeros(4)
+    r_thumbstick_x = 0
+    r_thumbstick_y = 0
+    r_index_trigger = 0
+    r_hand_trigger = 0
+    r_button_one = False
+    r_button_two = False
+    r_button_thumbstick = False
+
 class BufferVideoStreamTrack(VideoStreamTrack):
-    def __init__(self, buffer_size=1, image_format="rgb24", fps="24"):
+    def __init__(self, buffer_size=1, image_format="rgb24", fps="30"):
         super().__init__()
         self.queue = asyncio.Queue(maxsize=buffer_size)
         self.image_format = image_format
+        self.last_image = None
         self.fps = fps
 
     async def recv(self):
         start_time = time.time()
         pts, time_base = await self.next_timestamp()
-        frame = await self.queue.get()
+
+        if self.last_image is None:
+            self.last_image = await self.queue.get()
+
+        try:
+            self.last_image = self.queue.get_nowait()
+        except asyncio.QueueEmpty:
+            pass
+            
+        frame = self.last_image
         frame = VideoFrame.from_ndarray(frame, format=self.image_format)
         frame.pts = pts
         frame.time_base = time_base
-        end_time = time.time()
         # rate limit 
-        await asyncio.sleep(max(0, 1/float(self.fps) - (end_time - start_time)))
+        # await asyncio.sleep(max(0, 1/float(self.fps) - (time.time() - start_time)))
         return frame
 
     def add_frame(self, frame):
@@ -92,7 +123,7 @@ class WebRTCHeadset:
                     if self.channel is not None:
                         data = await self.send_data_queue.get()
                         self.channel.send(data)
-                        await asyncio.sleep(1/10)
+                        await asyncio.sleep(1/5)
                 except Exception as e:
                     print(f"Failed to send data: {e}")
                     await asyncio.sleep(1)
@@ -126,11 +157,40 @@ class WebRTCHeadset:
 
         @self.channel.on("open")
         def on_open():
-            print("channel open")    
+            print("channel open") 
+
+        @self.channel.on("message")
+        def on_message(message):
+            try:
+                headset_data = HeadsetData()
+                data = json.loads(message)
+
+                headset_data.l_thumbstick_x = data['LThumbstick']['x']
+                headset_data.l_thumbstick_y = data['LThumbstick']['y']
+                headset_data.l_index_trigger = data['LIndexTrigger']
+                headset_data.l_hand_trigger = data['LHandTrigger']
+                headset_data.l_button_one = data['LButtonOne']
+                headset_data.l_button_two = data['LButtonTwo']
+                headset_data.l_button_thumbstick = data['LButtonThumbstick']
+                headset_data.r_thumbstick_x = data['RThumbstick']['x']
+                headset_data.r_thumbstick_y = data['RThumbstick']['y']
+                headset_data.r_index_trigger = data['RIndexTrigger']
+                headset_data.r_hand_trigger = data['RHandTrigger']
+                headset_data.r_button_one = data['RButtonOne']
+                headset_data.r_button_two = data['RButtonTwo']
+                headset_data.r_button_thumbstick = data['RButtonThumbstick']
+
+                self.receive_data_queue.put_nowait(headset_data)
+            except json.JSONDecodeError:
+                print("[RobotWebRTC] Failed to decode message")
+            except asyncio.QueueFull:
+                print("[RobotWebRTC] Data queue is full")
+            except KeyError:
+                print("[RobotWebRTC] Key error")         
 
         self.video_track = BufferVideoStreamTrack(buffer_size=self.video_buffer_size, image_format="rgb24")
         self.video_sender = self.pc.addTrack(self.video_track)
-        force_codec(self.pc, self.video_sender, 'video/h264')
+        # force_codec(self.pc, self.video_sender, 'video/h264')
             
         call_doc = self.db.collection(self.password).document(self.robotId)
 

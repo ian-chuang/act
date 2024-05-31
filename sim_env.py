@@ -121,6 +121,8 @@ class BimanualViperXTask(base.Task):
         obs['images'] = dict()
         obs['images']['top'] = physics.render(height=480, width=640, camera_id='top')
         obs['images']['angle'] = physics.render(height=480, width=640, camera_id='angle')
+        obs['images']['left_wrist'] = physics.render(height=480, width=640, camera_id='left_wrist')
+        obs['images']['right_wrist'] = physics.render(height=480, width=640, camera_id='right_wrist')
         obs['images']['left_eye'] = physics.render(height=1280, width=1280, camera_id='left_eye')
         obs['images']['right_eye'] = physics.render(height=1280, width=1280, camera_id='right_eye')
 
@@ -265,8 +267,11 @@ class MarbleGameTask(BimanualViperXTask):
             quat = np.array([1, 0, 0, 0])
             pose = np.concatenate([position, quat])
 
+            if BOX_POSE[0] is not None:
+                pose = BOX_POSE[0]
+
             np.copyto(physics.named.data.qpos['board_joint'], pose)
-            np.copyto(physics.named.data.qpos['marble_joint'], pose)
+            np.copyto(physics.named.data.qpos['marble_joint'], pose + np.array([0, 0, 0.03, 0, 0, 0, 0]))
             
         super().initialize_episode(physics)
 
@@ -300,6 +305,9 @@ class SlotInsertionTask(BimanualViperXTask):
 
             quat = np.array([1, 0, 0, 0])
             pose = np.concatenate([position, quat])
+
+            if BOX_POSE[0] is not None:
+                pose = BOX_POSE[0]
         
             np.copyto(physics.named.data.qpos['stick_joint'], pose)
             

@@ -41,8 +41,8 @@ SIM_TASK_CONFIGS = {
     'sim_slot_insertion_human':{
         'dataset_dir': DATA_DIR + '/sim_slot_insertion_human',
         'num_episodes': 50,
-        'episode_len': 5000,
-        'camera_names': ['top']
+        'episode_len': 550,
+        'camera_names': ['top', 'angle', 'left_wrist', 'right_wrist']
     },
 }
 

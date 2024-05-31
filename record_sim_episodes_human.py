@@ -21,7 +21,7 @@ import asyncio
 import IPython
 e = IPython.embed
 
-def opening_ceremony(master_bot_left, master_bot_right):
+async def opening_ceremony(master_bot_left, master_bot_right):
     """ Move all 4 robots to a pose where it is easy to start demonstration """
     # reboot gripper motors, and set operating modes for all motors
     master_bot_left.dxl.robot_set_operating_modes("group", "arm", "position")
@@ -37,9 +37,9 @@ def opening_ceremony(master_bot_left, master_bot_right):
 
     # move arms to starting position
     start_arm_qpos = START_ARM_POSE[:6]
-    move_arms([master_bot_left, master_bot_right], [start_arm_qpos] * 4, move_time=1.5)
+    await move_arms([master_bot_left, master_bot_right], [start_arm_qpos] * 4, move_time=1.5)
     # move grippers to starting position
-    move_grippers([master_bot_left, master_bot_right], [MASTER_GRIPPER_JOINT_MID] * 2, move_time=0.5)
+    await move_grippers([master_bot_left, master_bot_right], [MASTER_GRIPPER_JOINT_MID] * 2, move_time=0.5)
 
 
     # press gripper to start data collection
@@ -54,7 +54,8 @@ def opening_ceremony(master_bot_left, master_bot_right):
         gripper_pos_right = get_arm_gripper_positions(master_bot_right)
         if (gripper_pos_left < close_thresh) and (gripper_pos_right < close_thresh):
             pressed = True
-        time.sleep(DT/10)
+        await asyncio.sleep(DT/10)
+        await asyncio.sleep(0)
 
     torque_off(master_bot_left)
     torque_off(master_bot_right)
@@ -108,16 +109,39 @@ async def main(args):
 
     # setup the environment
     env = make_sim_env(task_name)
+
+    i = episode_idx
     ts = env.reset()
     episode_replay = [ts]
     joint_traj = []
 
-    headset.send_image(np.concatenate([ts.observation['images']['left_eye'], ts.observation['images']['right_eye']], axis=1))
-    await asyncio.sleep(0.02)
+    # mng = plt.get_current_fig_manager()
+    # mng.full_screen_toggle()
+    # ax = plt.subplot()
+    # plt_img = ax.imshow(ts.observation['images']['angle'])
+    # plt.ion()
 
-    opening_ceremony(master_bot_left, master_bot_right)
+    headset.send_image(np.concatenate([ts.observation['images']['left_eye'], ts.observation['images']['right_eye']], axis=1))
+
+    await opening_ceremony(master_bot_left, master_bot_right)
 
     for t in tqdm(range(episode_len)):
+        await asyncio.sleep(0)
+
+        feedback = {
+            'headOutOfSync': False,
+            'leftOutOfSync': False,
+            'rightOutOfSync': False,
+            'ok': True,
+            'info': f"Episode {i}, Timestep: {str(t).zfill(len(str(episode_len)))}/{episode_len}",
+            'leftArmPosition': [0,0,0],
+            'leftArmRotation': [0,0,0,1],
+            'rightArmPosition': [0,0,0],  
+            'rightArmRotation': [0,0,0,1],
+            'middleArmPosition': [0,0,0],
+            'middleArmRotation': [0,0,0,1],
+        }
+        headset.send_data(feedback)
 
         headset.send_image(np.concatenate([ts.observation['images']['left_eye'], ts.observation['images']['right_eye']], axis=1))
         await asyncio.sleep(0)
@@ -125,12 +149,15 @@ async def main(args):
         action = get_action(master_bot_left, master_bot_right)
         ts = env.step(action)
 
-        await asyncio.sleep(0.02)
+        await asyncio.sleep(0)
 
         episode_replay.append(ts)
         joint_traj.append(action)
 
-        await asyncio.sleep(0.02)
+        # plt_img.set_data(ts.observation['images']['angle'])
+        # plt.pause(0.005)
+
+        await asyncio.sleep(0.015)
 
         if rospy.is_shutdown():
             print('ROS shutdown: Failed to collect data')
@@ -174,7 +201,7 @@ async def main(args):
 
     # HDF5
     t0 = time.time()
-    dataset_path = os.path.join(dataset_dir, f'episode_{episode_idx}')
+    dataset_path = os.path.join(dataset_dir, f'episode_{i}')
     with h5py.File(dataset_path + '.hdf5', 'w', rdcc_nbytes=1024 ** 2 * 2) as root:
         root.attrs['sim'] = True
         obs = root.create_group('observations')
@@ -191,6 +218,7 @@ async def main(args):
         for name, array in data_dict.items():
             root[name][...] = array
     print(f'Saving: {time.time() - t0:.1f} secs\n')
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
